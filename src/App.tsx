@@ -993,6 +993,35 @@ function App() {
         <div className="copyright">
           © {new Date().getFullYear()} Ha Cookiez. {t.copyright}
         </div>
+        <div className="creator-credit" style={{ marginTop: '8px', fontSize: '11px', opacity: 0.7, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+          <span>{lang === 'he' ? 'נוצר על ידי' : lang === 'en' ? 'Created by' : lang === 'ru' ? 'Создано' : 'تم التطوير بواسطة'}</span>
+          <a 
+            href="https://www.instagram.com/naorkk82" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className="creator-link"
+            style={{ color: 'inherit', textDecoration: 'none', display: 'inline-flex', alignItems: 'center', gap: '3px', fontWeight: '600' }}
+          >
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              width="12" 
+              height="12" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="2.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round"
+              aria-hidden="true"
+              style={{ display: 'inline-block', verticalAlign: 'middle' }}
+            >
+              <rect width="20" height="20" x="2" y="2" rx="5" ry="5"/>
+              <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/>
+              <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"/>
+            </svg>
+            naorkk82
+          </a>
+        </div>
       </footer>
     </div>
   );

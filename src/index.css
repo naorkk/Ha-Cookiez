@@ -922,6 +922,15 @@ body {
   transform: scale(0.96);
 }
 
+.creator-link {
+  transition: color 0.2s ease, opacity 0.2s ease;
+}
+
+.creator-link:hover {
+  color: var(--accent) !important;
+  opacity: 1 !important;
+}
+
 
 
 
