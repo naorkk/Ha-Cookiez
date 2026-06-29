@@ -56,7 +56,6 @@ interface TranslationSet {
   bundle4Name: string;
   bundle1Name: string;
   
-  // New localization fields
   pickupWarningTitle: string;
   pickupWarningText: string;
   pickupWarningClose: string;
@@ -67,6 +66,11 @@ interface TranslationSet {
   payBit: string;
   confirmOrder: string;
   selectedPayment: string;
+  
+  // New translations for cart bar & modal close
+  cartBarLabel: string;
+  checkoutBtn: string;
+  closeBtn: string;
   
   flavors: Record<string, { name: string; desc: string }>;
 }
@@ -81,7 +85,7 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     deal6: 'מארז 6',
     deal14: 'מארז 14',
     menuTitle: 'תפריט העוגיות שלנו',
-    addToOrder: 'הוסף להזמנה +',
+    addToOrder: 'הוסף +',
     orderFormTitle: 'פרטי ההזמנה',
     fullName: 'שם מלא',
     fullNamePlaceholder: 'ישראל ישראלי',
@@ -116,6 +120,10 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     payBit: 'Bit',
     confirmOrder: 'אשר ושלח הזמנה',
     selectedPayment: 'שיטת תשלום:',
+    
+    cartBarLabel: 'בסל שלך:',
+    checkoutBtn: 'לקופה 🛒',
+    closeBtn: 'סגור',
     
     flavors: {
       chocolate_chip: {
@@ -153,7 +161,7 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     deal6: '6 Pack',
     deal14: '14 Pack',
     menuTitle: 'Our Cookie Menu',
-    addToOrder: 'Add to Order +',
+    addToOrder: 'Add +',
     orderFormTitle: 'Order Details',
     fullName: 'Full Name',
     fullNamePlaceholder: 'John Doe',
@@ -188,6 +196,10 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     payBit: 'Bit',
     confirmOrder: 'Confirm & Place Order',
     selectedPayment: 'Payment Method:',
+    
+    cartBarLabel: 'In your cart:',
+    checkoutBtn: 'Go to Checkout 🛒',
+    closeBtn: 'Close',
     
     flavors: {
       chocolate_chip: {
@@ -225,7 +237,7 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     deal6: 'Набор из 6',
     deal14: 'Набор из 14',
     menuTitle: 'Наше меню печенья',
-    addToOrder: 'Добавить в заказ +',
+    addToOrder: 'Добавить +',
     orderFormTitle: 'Детали заказа',
     fullName: 'Полное имя',
     fullNamePlaceholder: 'Иван Иванов',
@@ -260,6 +272,10 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     payBit: 'Bit',
     confirmOrder: 'Подтвердить и заказать',
     selectedPayment: 'Способ оплаты:',
+    
+    cartBarLabel: 'В корзине:',
+    checkoutBtn: 'Оформить 🛒',
+    closeBtn: 'Закрыть',
     
     flavors: {
       chocolate_chip: {
@@ -297,7 +313,7 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     deal6: 'علبة 6',
     deal14: 'علبة 14',
     menuTitle: 'قائمة الكوكيز لدينا',
-    addToOrder: 'أضف للطلب +',
+    addToOrder: 'أضف +',
     orderFormTitle: 'تفاصيل الطلب',
     fullName: 'الاسم الكامل',
     fullNamePlaceholder: 'فلان الفلاني',
@@ -332,6 +348,10 @@ const TRANSLATIONS: Record<Language, TranslationSet> = {
     payBit: 'Bit',
     confirmOrder: 'تأكيد وإرسال الطلب',
     selectedPayment: 'طريقة الدفع:',
+    
+    cartBarLabel: 'في سلتك:',
+    checkoutBtn: 'إتمام الطلب 🛒',
+    closeBtn: 'إغلاق',
     
     flavors: {
       chocolate_chip: {
@@ -439,11 +459,15 @@ function App() {
 
   // UI Modals state
   const [showPickupWarning, setShowPickupWarning] = useState(true);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   
   // Selected payment method state
   const [selectedPayment, setSelectedPayment] = useState<PaymentMethod | null>(null);
+
+  // Expanded card description state
+  const [activeDesc, setActiveDesc] = useState<string | null>(null);
 
   // Sync HTML tag direction and lang attributes
   useEffect(() => {
@@ -485,6 +509,7 @@ function App() {
   const handleFormSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (isFormValid) {
+      setShowCheckoutModal(false); // Close details modal
       setShowPaymentModal(true); // Open payment choice modal
     }
   };
@@ -509,6 +534,8 @@ function App() {
     setPhone('');
     setNotes('');
     setSelectedPayment(null);
+    setActiveDesc(null);
+    setShowCheckoutModal(false);
     setShowSuccessModal(false);
   };
 
@@ -608,7 +635,12 @@ function App() {
           const details = t.flavors[meta.id];
           return (
             <div key={meta.id} className={`flavor-card ${meta.class}`}>
-              <div className={`flavor-image-container ${!meta.image ? 'mystery' : ''}`}>
+              {/* Tapping the image container toggles the description overlay */}
+              <div 
+                className={`flavor-image-container ${!meta.image ? 'mystery' : ''}`}
+                onClick={() => setActiveDesc(activeDesc === meta.id ? null : meta.id)}
+                style={{ cursor: 'pointer' }}
+              >
                 {meta.image ? (
                   <img 
                     className="flavor-image" 
@@ -618,31 +650,53 @@ function App() {
                 ) : (
                   <span className="mystery-mark">?</span>
                 )}
-              </div>
-              <div className="flavor-info">
-                <div className="flavor-header">
-                  <h3 className="flavor-name">{details.name}</h3>
-                  <span className="flavor-price-tag">{t.inDealTag}</span>
+                
+                {/* Absolute Deal Badge */}
+                <span className="flavor-badge-absolute">{t.inDealTag}</span>
+                
+                {/* Clickable Description Overlay */}
+                <div className={`flavor-desc-overlay ${activeDesc === meta.id ? 'active' : ''}`}>
+                  {details.desc}
                 </div>
-                <p className="flavor-desc">{details.desc}</p>
+              </div>
+
+              <div className="flavor-info">
+                {/* Flavor Name (Also clickable to toggle info) */}
+                <h3 
+                  className="flavor-name"
+                  onClick={() => setActiveDesc(activeDesc === meta.id ? null : meta.id)}
+                  style={{ cursor: 'pointer' }}
+                >
+                  {details.name}
+                </h3>
+                
+                {/* Hint Text */}
+                <span 
+                  className="click-hint"
+                  onClick={() => setActiveDesc(activeDesc === meta.id ? null : meta.id)}
+                >
+                  {lang === 'he' ? 'לחצו לתיאור 📖' : lang === 'en' ? 'Click for info 📖' : lang === 'ru' ? 'Описание 📖' : 'انقر للتفاصيل 📖'}
+                </span>
+
                 <div className="card-action-bar">
                   {qty === 0 ? (
                     <button 
                       type="button" 
                       className="add-first-btn"
+                      style={{ width: '100%' }}
                       onClick={() => updateQty(meta.id, 1)}
                     >
                       {t.addToOrder}
                     </button>
                   ) : (
-                    <div className="qty-control">
+                    <div className="qty-control" style={{ width: '100%', justifyContent: 'space-between' }}>
                       <button 
                         type="button" 
                         className="qty-btn"
                         onClick={() => updateQty(meta.id, -1)}
                         aria-label="Decrease"
                       >
-                        <Minus size={14} />
+                        <Minus size={12} />
                       </button>
                       <span className="qty-value">{qty}</span>
                       <button 
@@ -651,7 +705,7 @@ function App() {
                         onClick={() => updateQty(meta.id, 1)}
                         aria-label="Increase"
                       >
-                        <Plus size={14} />
+                        <Plus size={12} />
                       </button>
                     </div>
                   )}
@@ -662,89 +716,117 @@ function App() {
         })}
       </div>
 
-      {/* 4. Checkout Section */}
-      <section className="checkout-section">
-        <h2 className="section-title">
-          <ShoppingBag size={18} color="var(--primary)" />
-          {t.orderFormTitle}
-        </h2>
-
-        <form onSubmit={handleFormSubmit}>
-          <div className="form-group">
-            <label className="form-label" htmlFor="full-name">
-              <User size={14} style={{ marginInlineEnd: 4 }} />
-              {t.fullName}
-            </label>
-            <input 
-              id="full-name"
-              type="text" 
-              className="form-input" 
-              placeholder={t.fullNamePlaceholder} 
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+      {/* 4. Sticky Floating Cart Bar */}
+      {totalItems > 0 && (
+        <div className="cart-bar">
+          <div className="cart-bar-info">
+            <span className="cart-bar-count">{totalItems} {t.summaryTotalCookiesValue}</span>
+            <span className="cart-bar-total">{totalPrice} ₪</span>
           </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="phone-number">
-              <Phone size={14} style={{ marginInlineEnd: 4 }} />
-              {t.phoneNumber}
-            </label>
-            <input 
-              id="phone-number"
-              type="tel" 
-              className="form-input" 
-              placeholder="050-1234567" 
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="form-group">
-            <label className="form-label" htmlFor="order-notes">
-              <MessageSquare size={14} style={{ marginInlineEnd: 4 }} />
-              {t.notes}
-            </label>
-            <textarea 
-              id="order-notes"
-              className="form-input form-textarea" 
-              placeholder={t.notesPlaceholder} 
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
-          </div>
-
-          {/* Dynamic Summary */}
-          <div className="summary-box">
-            <div className="summary-row">
-              <span>{t.summaryTotalCookies}</span>
-              <span>{totalItems} {t.summaryTotalCookiesValue}</span>
-            </div>
-            {totalItems > 0 && (
-              <div className="summary-row" style={{ fontSize: '13px', borderBottom: '1px solid #efebe9', paddingBottom: '6px', marginBottom: '4px' }}>
-                <span>{t.summaryBundleComposition}</span>
-                <span style={{ fontWeight: 500, color: 'var(--primary-light)' }}>{priceBreakdown}</span>
-              </div>
-            )}
-            <div className="summary-row total">
-              <span>{t.summaryTotalPrice}</span>
-              <span>{totalPrice} ₪</span>
-            </div>
-          </div>
-
-          {/* Submit Button */}
           <button 
-            type="submit" 
-            className="submit-btn"
-            disabled={!isFormValid}
+            type="button" 
+            className="cart-bar-btn"
+            onClick={() => setShowCheckoutModal(true)}
           >
-            <ShoppingBag size={18} />
-            <span>{t.submitBtn} ({totalPrice} ₪)</span>
+            <span>{t.checkoutBtn}</span>
           </button>
-        </form>
-      </section>
+        </div>
+      )}
+
+      {/* 5. Checkout Details Form Modal */}
+      {showCheckoutModal && (
+        <div className="modal-overlay">
+          <div className="modal-content scrollable">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottom: '2px dashed #efebe9', paddingBottom: 12 }}>
+              <h3 className="modal-title" style={{ margin: 0 }}>{t.orderFormTitle}</h3>
+              <button 
+                type="button" 
+                className="modal-close-btn"
+                style={{ backgroundColor: '#bcaaa4', padding: '6px 16px', borderRadius: '10px' }}
+                onClick={() => setShowCheckoutModal(false)}
+              >
+                {t.closeBtn}
+              </button>
+            </div>
+
+            <form onSubmit={handleFormSubmit}>
+              <div className="form-group" style={{ textAlign: 'start' }}>
+                <label className="form-label" htmlFor="full-name">
+                  <User size={14} style={{ marginInlineEnd: 4 }} />
+                  {t.fullName}
+                </label>
+                <input 
+                  id="full-name"
+                  type="text" 
+                  className="form-input" 
+                  placeholder={t.fullNamePlaceholder} 
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ textAlign: 'start' }}>
+                <label className="form-label" htmlFor="phone-number">
+                  <Phone size={14} style={{ marginInlineEnd: 4 }} />
+                  {t.phoneNumber}
+                </label>
+                <input 
+                  id="phone-number"
+                  type="tel" 
+                  className="form-input" 
+                  placeholder="050-1234567" 
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                />
+              </div>
+
+              <div className="form-group" style={{ textAlign: 'start' }}>
+                <label className="form-label" htmlFor="order-notes">
+                  <MessageSquare size={14} style={{ marginInlineEnd: 4 }} />
+                  {t.notes}
+                </label>
+                <textarea 
+                  id="order-notes"
+                  className="form-input form-textarea" 
+                  placeholder={t.notesPlaceholder} 
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+
+              {/* Dynamic Summary inside Modal */}
+              <div className="summary-box">
+                <div className="summary-row">
+                  <span>{t.summaryTotalCookies}</span>
+                  <span>{totalItems} {t.summaryTotalCookiesValue}</span>
+                </div>
+                {totalItems > 0 && (
+                  <div className="summary-row" style={{ fontSize: '13px', borderBottom: '1px solid #efebe9', paddingBottom: '6px', marginBottom: '4px' }}>
+                    <span>{t.summaryBundleComposition}</span>
+                    <span style={{ fontWeight: 500, color: 'var(--primary-light)' }}>{priceBreakdown}</span>
+                  </div>
+                )}
+                <div className="summary-row total">
+                  <span>{t.summaryTotalPrice}</span>
+                  <span>{totalPrice} ₪</span>
+                </div>
+              </div>
+
+              {/* Submit to proceed to payment options */}
+              <button 
+                type="submit" 
+                className="submit-btn"
+                disabled={!isFormValid}
+              >
+                <ShoppingBag size={18} />
+                <span>{t.submitBtn} ({totalPrice} ₪)</span>
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Initial Warning Modal (Self-pickup only) */}
       {showPickupWarning && (
@@ -827,7 +909,7 @@ function App() {
         </div>
       )}
 
-      {/* 5. Success Modal */}
+      {/* 6. Success Modal */}
       {showSuccessModal && (
         <div className="modal-overlay">
           <div className="modal-content">
@@ -881,7 +963,7 @@ function App() {
         </div>
       )}
 
-      {/* 6. Footer */}
+      {/* 7. Footer */}
       <footer className="footer">
         <span className="footer-logo">Ha Cookiez 🍪</span>
         <a 
